@@ -1,0 +1,12 @@
+# Runtime artifacts — never commit these
+logs/
+**/logs/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local / machine-specific Claude Code settings
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.env

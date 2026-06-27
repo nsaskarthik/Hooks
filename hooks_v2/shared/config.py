@@ -93,9 +93,11 @@ class HookConfig:
 
         # --- Paths ---
         root = Path(__file__).resolve().parent.parent
-        self.log_dir = Path(
-            os.getenv("HOOKS_LOG_DIR", logging_cfg.get("dir", str(root / "logs")))
-        )
+        log_value = os.getenv("HOOKS_LOG_DIR", logging_cfg.get("dir", "logs"))
+        log_path = Path(log_value)
+        # Resolve a relative dir against the hooks_v2 root, never the cwd, so logs
+        # don't land wherever a hook happens to be invoked from.
+        self.log_dir = log_path if log_path.is_absolute() else (root / log_path)
         self.state_dir = self.log_dir / "state"
 
     @property
