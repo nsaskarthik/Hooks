@@ -1,0 +1,3 @@
+# Test/dev-only tooling. Install with: pip install -r requirements-dev.txt
+-r requirements.txt
+pytest>=7.0

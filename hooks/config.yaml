@@ -1,0 +1,55 @@
+# Configuration for the v2 hook system.
+# Every value can be overridden by an environment variable (see shared/config.py).
+
+anthropic:
+  # LLM backend:
+  #   agent_sdk (default) -> Claude Agent SDK, authenticated by your Claude
+  #                          subscription (CLAUDE_CODE_OAUTH_TOKEN or `claude`
+  #                          CLI login). No API key needed.
+  #   api                 -> Anthropic API directly (needs ANTHROPIC_API_KEY,
+  #                          billed at API rates).
+  # Override with the LLM_BACKEND env var.
+  backend: "agent_sdk"
+  # api_key: only used when backend=api. Prefer the ANTHROPIC_API_KEY env var.
+  timeout_seconds: 30
+
+# ============================================================================
+# THE TWO FEATURE FLAGS. Each flow turns on only when its flag is set.
+# ============================================================================
+gates:
+  # FLAG 1 - Prompt rewrite (Tier A). ON by default. Refines the user's prompt
+  # for typos/clarity at UserPromptSubmit / UserPromptExpansion.
+  # Env override: ENABLE_PROMPT_REWRITE=true|false
+  always_rewrite: true
+
+  # FLAG 2 - TDD + unit-test validation (Tier B). OFF by default. Generates
+  # acceptance criteria from the prompt and validates the final response at the
+  # Stop hook, blocking->retrying until it passes.
+  # Env override: ENABLE_TDD=true|false
+  enable_tdd: false
+
+  # (tuning, not a flag) Apply the rewrite when intent-preservation confidence is
+  # at least this value. Low so the rewrite is kept in almost all cases.
+  refine_confidence_threshold: 0.30
+
+tdd:
+  num_tests: 4
+  max_cycles: 3
+  pass_rate_threshold: 0.95
+
+models:
+  tier_a: "claude-haiku-4-5"        # prompt refinement
+  tier_b_gen: "claude-sonnet-4-6"   # test-case generation
+  tier_b_validate: "claude-sonnet-4-6"  # validation, cycles 1-2
+  tier_b_deep: "claude-opus-4-8"    # validation, final cycle
+
+notify:
+  # Channels the notifier fans out to (override with NOTIFY_CHANNELS).
+  #   log     - structured record in the audit log (always cheap)
+  #   desktop - notify-send / osascript pop-up
+  #   webhook - HTTP POST JSON to NOTIFY_WEBHOOK_URL (mobile push: ntfy/Pushover/Slack/custom)
+  #   sms     - reserved placeholder for a future SMS/push provider (e.g. Twilio)
+  channels: ["log"]
+
+logging:
+  dir: "logs"   # relative to the hooks_v2 root
