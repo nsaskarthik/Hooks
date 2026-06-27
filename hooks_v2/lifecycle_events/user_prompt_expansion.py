@@ -22,6 +22,7 @@ from hooks_v2.category2 import pipeline          # noqa: E402
 
 
 def main() -> None:
+    """Read the UserPromptExpansion event and rewrite the expanded prompt."""
     try:
         input_data = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):

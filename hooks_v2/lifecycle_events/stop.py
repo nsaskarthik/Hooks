@@ -21,7 +21,7 @@ sys.path.insert(0, str(_ROOT.parent))
 from hooks_v2.shared.config import get_config   # noqa: E402
 from hooks_v2.shared.logger import get_logger   # noqa: E402
 from hooks_v2.category2 import tier_b_tdd        # noqa: E402
-from hooks_v2.context_manager.context import ContextStore  # noqa: E402
+from hooks_v2.context_manager.context import ContextStore, session_key  # noqa: E402
 
 
 def _last_assistant_text(transcript_path: str) -> str:
@@ -55,6 +55,7 @@ def _last_assistant_text(transcript_path: str) -> str:
 
 
 def main() -> None:
+    """Read the Stop event and run flagged Tier B validation of the response."""
     try:
         input_data = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
@@ -70,7 +71,7 @@ def main() -> None:
 
         session_id = input_data.get("session_id", "")
         store = ContextStore(config.state_dir)
-        key = f"tdd_{session_id}"
+        key = session_key(session_id)
         state = store.load(key)
         if not state or not state.get("tests"):
             sys.exit(0)
@@ -98,13 +99,18 @@ def main() -> None:
 
         state["cycle"] = cycle
         store.save(key, state)
-        reasons = "; ".join(f"{r.get('name')}: {r.get('reason')}" for r in validation["failed"])
+        # Build the retry message from trusted criterion names only. The model's
+        # free-text "reason" is NOT echoed back, so a compromised validator can't
+        # inject instructions into the next Claude turn.
+        failed_names = "; ".join(
+            str(r.get("name") or "unnamed criterion") for r in validation["failed"]
+        )
         print(json.dumps({
             "decision": "block",
             "reason": (
                 f"Response failed {len(validation['failed'])}/{validation['total_tests']} "
                 f"acceptance criteria (cycle {cycle}/{config.tdd_max_cycles}). "
-                f"Address these and continue: {reasons}"
+                f"Address these criteria and continue: {failed_names}"
             ),
         }))
         sys.exit(0)

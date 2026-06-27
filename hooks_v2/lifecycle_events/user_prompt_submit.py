@@ -23,6 +23,7 @@ from hooks_v2.category2 import pipeline          # noqa: E402
 
 
 def main() -> None:
+    """Read the UserPromptSubmit event and inject a refined-prompt context note."""
     try:
         input_data = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):

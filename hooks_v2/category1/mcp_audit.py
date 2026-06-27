@@ -12,12 +12,15 @@ from typing import Any
 def build_audit_record(input_data: dict[str, Any]) -> dict[str, Any]:
     """Build the Category 1 audit record from a PostToolUse event payload."""
     tool_output = input_data.get("tool_output")
-    # Heuristic status: a present, non-error output is "success".
-    status = "success"
-    if isinstance(tool_output, dict) and tool_output.get("error"):
-        status = "error"
-    if input_data.get("error"):
-        status = "error"
+    # Only a present output with no explicit error field is "success". Detect an
+    # error by field *presence* (not truthiness) so {"error": ""} still counts.
+    has_output = "tool_output" in input_data
+    has_error = "error" in input_data and input_data["error"] is not None
+    if isinstance(tool_output, dict):
+        has_error = has_error or (
+            "error" in tool_output and tool_output["error"] is not None
+        )
+    status = "success" if has_output and not has_error else "error"
 
     return {
         "hook_name": "mcp_audit",

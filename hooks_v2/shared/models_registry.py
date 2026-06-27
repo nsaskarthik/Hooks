@@ -18,9 +18,9 @@ TIER_B_DEEP_MODEL = OPUS          # validation, final cycle (deep analysis)
 
 # Approximate costs (USD per 1M tokens) for optional cost accounting in logs.
 COSTS = {
-    HAIKU: {"input": 0.80, "output": 4.00},
-    SONNET: {"input": 3.00, "output": 15.00},
-    OPUS: {"input": 5.00, "output": 25.00},
+    HAIKU: {"input": 1.00, "output": 5.00},   # Claude Haiku 4.5
+    SONNET: {"input": 3.00, "output": 15.00},  # Claude Sonnet 4.6
+    OPUS: {"input": 5.00, "output": 25.00},    # Claude Opus 4.8
 }
 
 

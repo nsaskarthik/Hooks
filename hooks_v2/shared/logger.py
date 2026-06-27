@@ -15,11 +15,15 @@ from typing import Any
 
 
 def _utc_now() -> str:
+    """Return the current UTC time as an ISO-8601 string."""
     return datetime.now(timezone.utc).isoformat()
 
 
 class HookLogger:
+    """Appends structured JSON records, one per line, under a log directory."""
+
     def __init__(self, log_dir: str | Path):
+        """Create the logger, ensuring ``log_dir`` exists."""
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -38,6 +42,7 @@ class HookLogger:
 
 
 def get_logger(log_dir: str | Path | None = None) -> HookLogger:
+    """Return a HookLogger for ``log_dir`` (defaults to the configured log dir)."""
     if log_dir is None:
         from .config import get_config
 

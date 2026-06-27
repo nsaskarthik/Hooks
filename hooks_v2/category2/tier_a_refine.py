@@ -81,12 +81,20 @@ def refine_prompt(original_prompt: str, config) -> dict[str, Any]:
         )
         parsed = llm_client.parse_json_object(result["text"])
         refined = (parsed.get("refined_prompt") or original_prompt).strip()
+        # parse_json_object guarantees JSON syntax, not field types. Coerce
+        # defensively so a malformed payload can't crash the caller's fail-open path.
+        try:
+            confidence = float(parsed.get("confidence_score", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            confidence = 0.0
+        corrections = parsed.get("corrections")
+        ambiguities = parsed.get("ambiguities")
         base.update(
             status="success",
             refined_prompt=refined or original_prompt,
-            confidence_score=float(parsed.get("confidence_score", 0.0) or 0.0),
-            corrections=parsed.get("corrections", []) or [],
-            ambiguities=parsed.get("ambiguities", []) or [],
+            confidence_score=confidence,
+            corrections=corrections if isinstance(corrections, list) else [],
+            ambiguities=ambiguities if isinstance(ambiguities, list) else [],
             input_tokens=result.get("input_tokens", 0),
             output_tokens=result.get("output_tokens", 0),
             duration_ms=int((time.time() - start) * 1000),

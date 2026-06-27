@@ -1,5 +1,5 @@
 {
-  "_comment": "Project-local (non-plugin) registration. Copy the hooks block into .claude/settings.json. Uses CLAUDE_PROJECT_DIR; adjust paths to where hooks_v2 lives. Stop hook only acts when ENABLE_TDD=true.",
+  "_comment": "Project-local (non-plugin) registration. Copy the hooks block into .claude/settings.json. Uses CLAUDE_PROJECT_DIR; adjust paths to where hooks_v2 lives. The Stop hook only acts when TDD is enabled: set gates.enable_tdd: true in hooks_v2/config.yaml (or the env override ENABLE_TDD=true).",
   "hooks": {
     "UserPromptSubmit": [
       {

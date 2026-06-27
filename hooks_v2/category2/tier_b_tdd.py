@@ -81,8 +81,23 @@ def validate_output(prompt: str, tool_output: str, tests: list[dict], cycle: int
         max_tokens=1024, timeout=config.timeout_seconds, api_key=config.anthropic_api_key,
     )
     parsed = llm_client.parse_json_object(result["text"])
-    results = parsed.get("results", []) or []
-    total = len(results) or len(tests) or 1
+    raw_results = parsed.get("results", []) or []
+    by_name = {
+        r.get("name"): r
+        for r in raw_results
+        if isinstance(r, dict) and r.get("name") is not None
+    }
+    # Score against the REQUESTED criteria: a criterion the validator omitted
+    # counts as a failure, so a partial reply can't inflate the pass rate.
+    results = [
+        by_name.get(t.get("name"), {
+            "name": t.get("name"),
+            "passed": False,
+            "reason": "criterion was not evaluated",
+        })
+        for t in tests
+    ]
+    total = len(tests) or 1
     passed = sum(1 for r in results if r.get("passed"))
     pass_rate = round(passed / total, 4) if total else 0.0
     return {

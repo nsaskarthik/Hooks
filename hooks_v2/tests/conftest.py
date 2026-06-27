@@ -9,15 +9,24 @@ import pytest
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO_ROOT))
 
-from hooks_v2.shared.config import HookConfig  # noqa: E402
+from hooks_v2.shared.config import get_config  # noqa: E402
+
+# Hook flags that must not leak in from the caller's environment.
+_HOOK_ENV = ("ENABLE_TDD", "ENABLE_PROMPT_REWRITE", "REFINE_CONFIDENCE_THRESHOLD")
 
 
 @pytest.fixture
 def config(tmp_path, monkeypatch):
-    """A HookConfig with a fake API key and temp log/state dirs."""
+    """A fresh HookConfig with a fake API key and temp log/state dirs.
+
+    Rebuilt via the reload path with hook env vars cleared so the cached
+    singleton and exported flags can't leak between tests.
+    """
+    for key in _HOOK_ENV:
+        monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.setenv("HOOKS_LOG_DIR", str(tmp_path / "logs"))
-    cfg = HookConfig()
+    cfg = get_config(reload=True)
     cfg.log_dir = tmp_path / "logs"
     cfg.state_dir = tmp_path / "logs" / "state"
     return cfg

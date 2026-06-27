@@ -19,6 +19,7 @@ from . import models_registry as models
 
 
 def _as_bool(value, default: bool) -> bool:
+    """Coerce an env/YAML value to bool, returning ``default`` when unset."""
     if value is None:
         return default
     if isinstance(value, bool):
@@ -30,6 +31,7 @@ class HookConfig:
     """Resolved configuration for the hook system."""
 
     def __init__(self, config_path: str | None = None):
+        """Resolve config from env vars layered over the YAML file."""
         config_path = config_path or os.getenv(
             "HOOKS_CONFIG_PATH",
             str(Path(__file__).resolve().parent.parent / "config.yaml"),
@@ -38,7 +40,9 @@ class HookConfig:
         data: dict = {}
         if yaml is not None and self.config_path.exists():
             with open(self.config_path, "r") as f:
-                data = yaml.safe_load(f) or {}
+                loaded = yaml.safe_load(f)
+            # A YAML file can parse to a list/scalar; only a mapping is usable.
+            data = loaded if isinstance(loaded, dict) else {}
 
         gates = data.get("gates", {}) or {}
         tdd = data.get("tdd", {}) or {}
@@ -102,6 +106,7 @@ class HookConfig:
 
     @property
     def has_api_key(self) -> bool:
+        """True when an Anthropic API key is available (Tier A/B can run)."""
         return bool(self.anthropic_api_key)
 
 

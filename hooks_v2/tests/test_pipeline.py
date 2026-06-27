@@ -2,7 +2,7 @@
 
 from hooks_v2.category1 import mcp_audit
 from hooks_v2.category2 import pipeline
-from hooks_v2.context_manager.context import ContextStore
+from hooks_v2.context_manager.context import ContextStore, session_key
 from hooks_v2.shared.logger import HookLogger
 
 
@@ -36,7 +36,7 @@ def test_pipeline_generates_tdd_when_enabled(config, tmp_path, monkeypatch, mock
 
     mock_llm(responder)
     pipeline.refine_and_prepare("build a parser", "sess9", config, _logger(tmp_path), "UserPromptExpansion")
-    state = ContextStore(config.state_dir).load("tdd_sess9")
+    state = ContextStore(config.state_dir).load(session_key("sess9"))
     assert state and state["tests"][0]["name"] == "t1" and state["cycle"] == 0
 
 

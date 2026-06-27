@@ -70,12 +70,31 @@ def parse_json_object(text: str) -> dict[str, Any]:
         return json.loads(text)
     except (json.JSONDecodeError, ValueError):
         pass
-    # Fall back to the first balanced { ... } span.
+    # Fall back to the first fully balanced { ... } span (brace-depth scan that
+    # ignores braces inside strings), so trailing prose can't break valid JSON.
     start = text.find("{")
-    end = text.rfind("}")
-    if start != -1 and end > start:
-        try:
-            return json.loads(text[start : end + 1])
-        except (json.JSONDecodeError, ValueError) as e:
-            raise LLMError(f"Unparseable JSON from model: {e}") from e
+    if start != -1:
+        depth = 0
+        in_string = False
+        escaped = False
+        for i, ch in enumerate(text[start:], start=start):
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif ch == "\\":
+                    escaped = True
+                elif ch == '"':
+                    in_string = False
+                continue
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[start : i + 1])
+                    except (json.JSONDecodeError, ValueError) as e:
+                        raise LLMError(f"Unparseable JSON from model: {e}") from e
     raise LLMError("No JSON object found in model output")

@@ -23,9 +23,15 @@ SUBMIT = _ROOT / "lifecycle_events" / "user_prompt_submit.py"
 
 # --- subprocess helpers ---
 
+# Hook flags that must be cleared so inherited env can't change default behavior.
+_HOOK_ENV = ("ANTHROPIC_API_KEY", "ENABLE_TDD", "ENABLE_PROMPT_REWRITE",
+             "REFINE_CONFIDENCE_THRESHOLD")
+
+
 def _run_script(script: Path, payload: dict, log_dir: Path, env_extra: dict | None = None):
     env = dict(os.environ)
-    env.pop("ANTHROPIC_API_KEY", None)
+    for key in _HOOK_ENV:
+        env.pop(key, None)
     env["HOOKS_LOG_DIR"] = str(log_dir)
     if env_extra:
         env.update(env_extra)
@@ -62,7 +68,10 @@ def test_submit_skips_without_api_key(tmp_path):
 
 
 def test_submit_invalid_json_fails_open(tmp_path):
-    env = dict(os.environ); env["HOOKS_LOG_DIR"] = str(tmp_path)
+    env = dict(os.environ)
+    for key in _HOOK_ENV:
+        env.pop(key, None)
+    env["HOOKS_LOG_DIR"] = str(tmp_path)
     proc = subprocess.run([sys.executable, str(SUBMIT)], input="not json",
                           capture_output=True, text=True, env=env, timeout=30)
     assert proc.returncode == 0 and proc.stdout.strip() == ""
@@ -71,6 +80,10 @@ def test_submit_invalid_json_fails_open(tmp_path):
 # --- in-process helpers ---
 
 def _prime_config(monkeypatch, tmp_path, **env):
+    # Clear any inherited hook flags, then apply only the explicit overrides.
+    for key in _HOOK_ENV:
+        if key not in env:
+            monkeypatch.delenv(key, raising=False)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     monkeypatch.setenv("HOOKS_LOG_DIR", str(tmp_path / "logs"))
     for k, v in env.items():

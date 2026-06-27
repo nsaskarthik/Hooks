@@ -15,11 +15,11 @@ def test_default_flags(config):
 
 
 def test_env_overrides_flags(monkeypatch):
-    from hooks_v2.shared.config import HookConfig
+    from hooks_v2.shared.config import get_config
 
     monkeypatch.setenv("ENABLE_TDD", "true")
     monkeypatch.setenv("ENABLE_PROMPT_REWRITE", "false")
-    cfg = HookConfig()
+    cfg = get_config(reload=True)  # reload so env overrides are re-read, not cached
     assert cfg.enable_tdd is True
     assert cfg.always_rewrite is False
 
@@ -42,4 +42,4 @@ def test_parse_json_object_variants():
 
 def test_model_cost():
     cost = models_registry.get_model_cost(models_registry.HAIKU, 1_000_000, 0)
-    assert cost == 0.80
+    assert cost == 1.00  # Claude Haiku 4.5 input rate

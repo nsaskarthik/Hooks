@@ -22,6 +22,7 @@ from hooks_v2.category1 import mcp_audit         # noqa: E402
 
 
 def main() -> None:
+    """Read the PostToolUse event and audit-log it when it's an MCP call."""
     try:
         input_data = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):

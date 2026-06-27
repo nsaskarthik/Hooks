@@ -9,7 +9,7 @@ criteria — is identical and lives here so it is written and tested once.
 from typing import Any
 
 from . import tier_a_refine, tier_b_tdd
-from ..context_manager.context import ContextStore
+from ..context_manager.context import ContextStore, session_key
 
 
 def refine_and_prepare(prompt: str, session_id: str, config, logger, event_name: str) -> dict[str, Any]:
@@ -35,12 +35,15 @@ def refine_and_prepare(prompt: str, session_id: str, config, logger, event_name:
 
 
 def _generate_and_store_tdd(prompt: str, session_id: str, config, logger) -> None:
+    """Generate TDD criteria for ``prompt`` and persist them under the session key."""
+    store = ContextStore(config.state_dir)
+    key = session_key(session_id)
     try:
         gen = tier_b_tdd.generate_tests(prompt, config)
         logger.log("tier_b_generate", gen)
-        ContextStore(config.state_dir).save(
-            f"tdd_{session_id}",
-            {"prompt": prompt, "tests": gen["tests"], "cycle": 0},
-        )
+        store.save(key, {"prompt": prompt, "tests": gen["tests"], "cycle": 0})
     except Exception as e:  # noqa: BLE001 - TDD must never break the prompt
+        # Clear any older criteria for this session so the Stop hook can't later
+        # validate against stale tests after a failed regeneration.
+        store.clear(key)
         logger.log("tier_b_generate", {"category": 2, "status": "error", "reason": str(e)})

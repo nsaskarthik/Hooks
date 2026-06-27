@@ -43,7 +43,7 @@ and Tasks don't support hooks at all.
 
 ## Layout
 
-```
+```text
 hooks_v2/
 ├── lifecycle_events/   user_prompt_submit.py, user_prompt_expansion.py,
 │                       post_tool_use.py, stop.py            (hook entry points)
