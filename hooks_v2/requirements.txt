@@ -1,3 +1,8 @@
-anthropic>=0.40
+# Default backend: Claude Agent SDK (uses your Claude subscription auth — no
+# per-token API key needed). Requires the `claude` CLI to be installed/logged in.
+claude-agent-sdk>=0.1.0
 pyyaml>=6.0
-python-dotenv>=1.0
+
+# Optional: only needed when LLM_BACKEND=api (calls the Anthropic API directly,
+# billed at per-token API rates).
+anthropic>=0.40

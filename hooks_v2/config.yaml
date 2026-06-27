@@ -2,19 +2,35 @@
 # Every value can be overridden by an environment variable (see shared/config.py).
 
 anthropic:
-  # api_key: read from ANTHROPIC_API_KEY env var (preferred). Leave unset here.
+  # LLM backend:
+  #   agent_sdk (default) -> Claude Agent SDK, authenticated by your Claude
+  #                          subscription (CLAUDE_CODE_OAUTH_TOKEN or `claude`
+  #                          CLI login). No API key needed.
+  #   api                 -> Anthropic API directly (needs ANTHROPIC_API_KEY,
+  #                          billed at API rates).
+  # Override with the LLM_BACKEND env var.
+  backend: "agent_sdk"
+  # api_key: only used when backend=api. Prefer the ANTHROPIC_API_KEY env var.
   timeout_seconds: 30
 
+# ============================================================================
+# THE TWO FEATURE FLAGS. Each flow turns on only when its flag is set.
+# ============================================================================
 gates:
-  # Tier A prompt rewrite. The priority feature: ON by default, applied to every
-  # Skill/Agent invocation that carries a prompt.
+  # FLAG 1 - Prompt rewrite (Tier A). ON by default. Refines the user's prompt
+  # for typos/clarity at UserPromptSubmit / UserPromptExpansion.
+  # Env override: ENABLE_PROMPT_REWRITE=true|false
   always_rewrite: true
-  # Apply the refined prompt when the model's intent-preservation confidence is at
-  # least this value. Low so the rewrite is kept in almost all cases.
-  refine_confidence_threshold: 0.30
-  # Tier B TDD generation + test execution + validation. OFF by default; flip to
-  # true (or set ENABLE_TDD=true) to turn on the validate/retry workflow.
+
+  # FLAG 2 - TDD + unit-test validation (Tier B). OFF by default. Generates
+  # acceptance criteria from the prompt and validates the final response at the
+  # Stop hook, blocking->retrying until it passes.
+  # Env override: ENABLE_TDD=true|false
   enable_tdd: false
+
+  # (tuning, not a flag) Apply the rewrite when intent-preservation confidence is
+  # at least this value. Low so the rewrite is kept in almost all cases.
+  refine_confidence_threshold: 0.30
 
 tdd:
   num_tests: 4

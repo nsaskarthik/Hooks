@@ -58,6 +58,18 @@ class HookConfig:
             os.getenv("HOOKS_TIMEOUT", anthropic_cfg.get("timeout_seconds", 30))
         )
 
+        # --- LLM backend ---
+        # "agent_sdk" (default): call the Claude Agent SDK query(), authenticated
+        #   by your Claude subscription (CLAUDE_CODE_OAUTH_TOKEN, or a logged-in
+        #   `claude` CLI). No per-token API key required.
+        # "api": call the Anthropic API directly (needs ANTHROPIC_API_KEY, billed
+        #   at API rates).
+        self.llm_backend = (
+            os.getenv("LLM_BACKEND", anthropic_cfg.get("backend", "agent_sdk"))
+            .strip()
+            .lower()
+        )
+
         # --- Feature gates ---
         # Tier A: prompt rewrite. Always on unless explicitly disabled.
         self.always_rewrite = _as_bool(
@@ -106,8 +118,23 @@ class HookConfig:
 
     @property
     def has_api_key(self) -> bool:
-        """True when an Anthropic API key is available (Tier A/B can run)."""
+        """True when an Anthropic API key is available."""
         return bool(self.anthropic_api_key)
+
+    @property
+    def llm_available(self) -> bool:
+        """Whether an LLM call can be made under the configured backend.
+
+        - ``api``: requires an Anthropic API key.
+        - ``agent_sdk``: requires subscription auth — a CLAUDE_CODE_OAUTH_TOKEN,
+          an API key the SDK can fall back to, or a logged-in ``claude`` CLI
+          (``~/.claude/.credentials.json``).
+        """
+        if self.llm_backend == "api":
+            return bool(self.anthropic_api_key)
+        if os.getenv("CLAUDE_CODE_OAUTH_TOKEN") or self.anthropic_api_key:
+            return True
+        return (Path.home() / ".claude" / ".credentials.json").exists()
 
 
 _INSTANCE: HookConfig | None = None

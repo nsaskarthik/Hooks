@@ -65,8 +65,8 @@ def refine_prompt(original_prompt: str, config) -> dict[str, Any]:
                     duration_ms=int((time.time() - start) * 1000))
         return base
 
-    if not config.has_api_key:
-        base.update(status="skipped", reason="no api key",
+    if not config.llm_available:
+        base.update(status="skipped", reason="llm unavailable",
                     duration_ms=int((time.time() - start) * 1000))
         return base
 
@@ -78,6 +78,7 @@ def refine_prompt(original_prompt: str, config) -> dict[str, Any]:
             max_tokens=1024,
             timeout=config.timeout_seconds,
             api_key=config.anthropic_api_key,
+            backend=config.llm_backend,
         )
         parsed = llm_client.parse_json_object(result["text"])
         refined = (parsed.get("refined_prompt") or original_prompt).strip()

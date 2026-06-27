@@ -49,6 +49,7 @@ def generate_tests(prompt: str, config) -> dict[str, Any]:
         max_tokens=1024,
         timeout=config.timeout_seconds,
         api_key=config.anthropic_api_key,
+        backend=config.llm_backend,
     )
     parsed = llm_client.parse_json_object(result["text"])
     tests = parsed.get("tests", []) or []
@@ -78,7 +79,8 @@ def validate_output(prompt: str, tool_output: str, tests: list[dict], cycle: int
     )
     result = llm_client.complete(
         model, VALIDATE_SYSTEM, user,
-        max_tokens=1024, timeout=config.timeout_seconds, api_key=config.anthropic_api_key,
+        max_tokens=1024, timeout=config.timeout_seconds,
+        api_key=config.anthropic_api_key, backend=config.llm_backend,
     )
     parsed = llm_client.parse_json_object(result["text"])
     raw_results = parsed.get("results", []) or []

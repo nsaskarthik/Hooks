@@ -63,7 +63,7 @@ def main() -> None:
 
     try:
         config = get_config()
-        if not config.enable_tdd or not config.has_api_key:
+        if not config.enable_tdd or not config.llm_available:
             sys.exit(0)
         # Don't re-block once we've already asked Claude to continue.
         if input_data.get("stop_hook_active"):

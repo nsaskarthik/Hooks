@@ -28,7 +28,7 @@ def refine_and_prepare(prompt: str, session_id: str, config, logger, event_name:
             result["applied"] = True
             result["refined"] = refinement["refined_prompt"]
 
-    if config.enable_tdd and config.has_api_key:
+    if config.enable_tdd and config.llm_available:
         _generate_and_store_tdd(result["refined"], session_id, config, logger)
 
     return result

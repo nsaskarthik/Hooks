@@ -57,34 +57,114 @@ hooks_v2/
 ├── config.yaml · requirements.txt · tests/
 ```
 
-## Install
+## The two feature flags
 
-**As a plugin:** point a marketplace/plugin install at this directory; `hooks/hooks.json`
-registers the hooks using `${CLAUDE_PLUGIN_ROOT}`.
+Everything is controlled by **two flags**. Each flow runs only when its flag is on.
 
-**Project-local:** copy the `hooks` block from `settings.example.json` into your
-`.claude/settings.json` (it references `${CLAUDE_PROJECT_DIR}/hooks_v2/...`).
+| Flag | Flow it enables | Default | Set in `config.yaml` | Env override |
+|------|-----------------|---------|----------------------|--------------|
+| **Prompt rewrite** (Tier A) | Refine the user's prompt for typos/clarity at submit/expansion | **on** | `gates.always_rewrite` | `ENABLE_PROMPT_REWRITE=true\|false` |
+| **TDD + unit-test validation** (Tier B) | Generate acceptance criteria from the prompt, then validate the final response at the Stop hook (block→retry) | **off** | `gates.enable_tdd` | `ENABLE_TDD=true\|false` |
 
-Then:
+Quick toggles:
 ```bash
-pip install -r hooks_v2/requirements.txt   # anthropic, pyyaml, python-dotenv
-export ANTHROPIC_API_KEY=...               # required for Tier A/B; without it, hooks no-op
+export ENABLE_PROMPT_REWRITE=true   # flag 1: prompt rewrite
+export ENABLE_TDD=true              # flag 2: TDD + validation
 ```
+
+## Install the hooks into your `.claude` folder
+
+The hooks run as plain Python scripts that Claude Code invokes. Two ways to wire them up:
+
+### Option A — project-local (recommended for one repo)
+
+1. **Copy this `hooks_v2/` directory into your project** (or keep it where it is).
+2. **Install the dependencies:**
+   ```bash
+   pip install -r hooks_v2/requirements.txt
+   ```
+3. **Register the hooks** by copying the `hooks` block from
+   [`settings.json`](settings.json) into your project's **`.claude/settings.json`**
+   (create the file if it doesn't exist). It points at the scripts via
+   `${CLAUDE_PROJECT_DIR}/hooks_v2/lifecycle_events/*.py`. A ready-to-copy file is
+   provided — if your repo has no `.claude/settings.json` yet you can just do:
+   ```bash
+   mkdir -p .claude
+   cp hooks_v2/settings.json .claude/settings.json
+   ```
+   If you already have a `.claude/settings.json`, merge the `hooks` keys in rather
+   than overwriting.
+4. **Verify** with `/hooks` inside Claude Code — you should see `UserPromptSubmit`,
+   `UserPromptExpansion`, `PostToolUse` (`mcp__.*`), and `Stop` registered.
+
+### Option B — global (all your projects)
+
+Put the same `hooks` block in **`~/.claude/settings.json`** and use an absolute
+path to the scripts (replace `${CLAUDE_PROJECT_DIR}/hooks_v2` with the absolute
+install path).
+
+### Option C — as a plugin
+
+`hooks/hooks.json` + `.claude-plugin/plugin.json` make this a drop-in Claude Code
+plugin; install it from a marketplace/plugin path and it self-registers via
+`${CLAUDE_PLUGIN_ROOT}`.
+
+## Authentication (no API key needed on a Max/Pro plan)
+
+The default `agent_sdk` backend uses your **Claude subscription** via the Claude
+Agent SDK — no per-token API key.
+
+1. Generate a long-lived subscription token **once**:
+   ```bash
+   claude setup-token        # opens a browser login, prints a token
+   export CLAUDE_CODE_OAUTH_TOKEN=...   # set it where the hooks run
+   ```
+   (A logged-in `claude` CLI also works without this token.)
+2. **Make sure `ANTHROPIC_API_KEY` is _unset_** — if it's set, the SDK uses it and
+   bills API rates instead of your subscription.
+
+Prefer the pay-as-you-go API instead? Set `LLM_BACKEND=api` and `ANTHROPIC_API_KEY=...`.
+
+> Without any working auth, the hooks **fail open** (no-op) — they never block or
+> break a prompt; the rewrite/validation simply doesn't run.
 
 ## Configuration (`config.yaml` or env)
 
 | Setting | Env | Default | Meaning |
 |---------|-----|---------|---------|
-| `gates.always_rewrite` | `ENABLE_PROMPT_REWRITE` | `true` | Tier A prompt rewrite |
+| `anthropic.backend` | `LLM_BACKEND` | `agent_sdk` | `agent_sdk` (subscription) or `api` (API key) |
+| `gates.always_rewrite` | `ENABLE_PROMPT_REWRITE` | `true` | **Flag 1** — Tier A prompt rewrite |
+| `gates.enable_tdd` | `ENABLE_TDD` | `false` | **Flag 2** — Tier B generation + validation/retry |
 | `gates.refine_confidence_threshold` | `REFINE_CONFIDENCE_THRESHOLD` | `0.30` | Apply the rewrite when intent-preservation confidence ≥ this |
-| `gates.enable_tdd` | `ENABLE_TDD` | `false` | Tier B generation + validation/retry |
 | `tdd.max_cycles` | `TDD_MAX_CYCLES` | `3` | Retry cap |
 | `tdd.pass_rate_threshold` | `TDD_PASS_THRESHOLD` | `0.95` | Pass bar |
 
 Models: Tier A `claude-haiku-4-5`; Tier B gen/validate `claude-sonnet-4-6`; final cycle `claude-opus-4-8`.
 
-## Test
+## Run the automated tests
+
+The suite is pure-Python and needs **no API key/subscription** (the LLM call is
+mocked). From the repo root:
 
 ```bash
-python3 -m pytest hooks_v2/tests -q
+pip install -r hooks_v2/requirements-dev.txt   # pytest + runtime deps
+python3 -m pytest hooks_v2/tests -q            # run everything (35 tests)
+python3 -m pytest hooks_v2/tests -v            # verbose, per-test names
+python3 -m pytest hooks_v2/tests/test_lifecycle.py -q   # one file
+```
+
+What the test files cover:
+
+| File | Covers |
+|------|--------|
+| `tests/test_shared.py` | config flags/env overrides, JSON logger, JSON parsing, model costs |
+| `tests/test_context.py` | the `ContextStore` save/load/clear + key helpers |
+| `tests/test_category2.py` | Tier A refine (apply/skip/fail-open) and Tier B generate/validate |
+| `tests/test_pipeline.py` | the shared refine+TDD pipeline and MCP audit edge cases |
+| `tests/test_lifecycle.py` | end-to-end hook scripts: prompt rewrite, expansion rewrite, MCP audit, Stop block→retry→pass |
+
+You can also smoke-test a hook by hand (no auth needed — it just no-ops the LLM):
+```bash
+echo '{"tool_name":"mcp__x__y","tool_input":{"q":"hi"},"tool_output":"ok","duration_ms":3}' \
+  | python3 hooks_v2/lifecycle_events/post_tool_use.py   # writes an MCP audit record
 ```

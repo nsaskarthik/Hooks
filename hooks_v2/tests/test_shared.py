@@ -1,8 +1,13 @@
 """Tests for shared infrastructure: config flags, logger, JSON parsing, models."""
 
+import builtins
 import json
 
+import pytest
+
 from hooks_v2.shared import llm_client, models_registry
+from hooks_v2.shared.config import get_config
+from hooks_v2.shared.errors import LLMError
 from hooks_v2.shared.logger import HookLogger
 
 
@@ -43,3 +48,44 @@ def test_parse_json_object_variants():
 def test_model_cost():
     cost = models_registry.get_model_cost(models_registry.HAIKU, 1_000_000, 0)
     assert cost == 1.00  # Claude Haiku 4.5 input rate
+
+
+# --- LLM backend selection / availability ---
+
+def test_default_backend_is_agent_sdk(monkeypatch):
+    monkeypatch.delenv("LLM_BACKEND", raising=False)
+    assert get_config(reload=True).llm_backend == "agent_sdk"
+
+
+def test_llm_available_api_backend(monkeypatch):
+    monkeypatch.setenv("LLM_BACKEND", "api")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    assert get_config(reload=True).llm_available is True
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    assert get_config(reload=True).llm_available is False
+
+
+def test_llm_available_agent_sdk_with_token(monkeypatch):
+    monkeypatch.setenv("LLM_BACKEND", "agent_sdk")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "tok")
+    assert get_config(reload=True).llm_available is True
+
+
+def test_complete_api_requires_key():
+    with pytest.raises(LLMError):
+        llm_client.complete("m", "s", "u", backend="api", api_key=None)
+
+
+def test_complete_agent_sdk_missing_pkg_raises(monkeypatch):
+    """When claude_agent_sdk isn't importable, complete() raises LLMError (callers fail open)."""
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "claude_agent_sdk":
+            raise ImportError("not installed")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    with pytest.raises(LLMError):
+        llm_client.complete("m", "s", "u", backend="agent_sdk")
