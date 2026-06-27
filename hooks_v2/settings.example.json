@@ -1,0 +1,52 @@
+{
+  "_comment": "Project-local (non-plugin) registration. Copy the hooks block into .claude/settings.json. Uses CLAUDE_PROJECT_DIR; adjust paths to where hooks_v2 lives. The Stop hook only acts when TDD is enabled: set gates.enable_tdd: true in hooks_v2/config.yaml (or the env override ENABLE_TDD=true).",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/hooks_v2/lifecycle_events/user_prompt_submit.py\"",
+            "timeout": 30,
+            "statusMessage": "Refining prompt..."
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/hooks_v2/lifecycle_events/user_prompt_expansion.py\"",
+            "timeout": 30,
+            "statusMessage": "Refining command..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/hooks_v2/lifecycle_events/post_tool_use.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/hooks_v2/lifecycle_events/stop.py\"",
+            "timeout": 120,
+            "statusMessage": "Validating against TDD criteria..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "tdd-hooks",
+  "version": "2.0.0",
+  "description": "Category-2 prompt-rewrite + TDD validation hooks for Skill/Agent, with MCP audit logging.",
+  "hooks": "./hooks/hooks.json"
+}
