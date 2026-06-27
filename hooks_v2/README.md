@@ -14,6 +14,29 @@ against generated acceptance criteria.
 | **PostToolUse** `mcp__.*` | an MCP tool returns | **Category 1** audit log only |
 | **Stop** | Claude finishes a turn | **Tier B** validate response vs criteria; `decision:block`->retry <=3 cycles *(flagged)* |
 
+### Full lifecycle coverage + unified audit log
+
+Beyond the LLM features above, v2 ships a hook for **every practical lifecycle
+event** (ported and hardened from v1). They all write one structured record to a
+single audit log — **`logs/audit.log.jsonl`** — so the whole session is greppable
+in one place:
+
+| Event | Script | What it does |
+|-------|--------|--------------|
+| `SessionStart` | `session_start.py` | Audit + inject git/branch + active-flags context |
+| `SessionEnd` | `session_end.py` | Audit + sweep stale `tdd_*` state files |
+| `Setup` | `setup.py` | Audit + project detection + persist `PROJECT_ROOT` |
+| `PreToolUse` | `pre_tool_use.py` | **Block** dangerous commands (`rm -rf`, `dd`, fork bomb, `.env` access) via `permissionDecision: deny`; audit Bash |
+| `PostToolUseFailure` | `post_tool_use_failure.py` | Audit tool failures (`status=error`) |
+| `PermissionRequest` | `permission_request.py` | Audit; opt-in auto-allow read-only tools (`AUTO_ALLOW_READONLY=true`) |
+| `Notification` | `notification.py` | Audit; opt-in desktop alert (`NOTIFY_DESKTOP=true`) |
+| `SubagentStart` / `SubagentStop` | `subagent_start.py` / `subagent_stop.py` | Audit spawns/finishes; opt-in LLM summary (`SUBAGENT_SUMMARY=true`) |
+| `PreCompact` / `PostCompact` | `pre_compact.py` / `post_compact.py` | Audit compaction; opt-in transcript backup (`BACKUP_TRANSCRIPT=true`) |
+| `Stop` | `stop.py` | Audit every turn-end (+ Tier B validation when enabled) |
+
+All are **fail-open** — any error exits 0 and the action proceeds untouched. The
+optional behaviors are off by default and gated by the env vars shown above.
+
 ### Why these events (not PreToolUse on Skill/Agent)
 
 Prompt typos originate in **the user's input**, so refinement happens where that

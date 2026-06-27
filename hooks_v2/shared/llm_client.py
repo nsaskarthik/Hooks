@@ -79,6 +79,7 @@ def _complete_agent_sdk(model, system, user, *, timeout):
         raise LLMError(f"claude-agent-sdk not installed: {e}") from e
 
     async def _run():
+        """Run the single-turn query and return (text, usage)."""
         options = ClaudeAgentOptions(
             system_prompt=system,
             model=model,

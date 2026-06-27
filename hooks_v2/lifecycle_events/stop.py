@@ -20,6 +20,7 @@ sys.path.insert(0, str(_ROOT.parent))
 
 from hooks_v2.shared.config import get_config   # noqa: E402
 from hooks_v2.shared.logger import get_logger   # noqa: E402
+from hooks_v2.shared.events import audit_event   # noqa: E402
 from hooks_v2.category2 import tier_b_tdd        # noqa: E402
 from hooks_v2.context_manager.context import ContextStore, session_key  # noqa: E402
 
@@ -63,6 +64,10 @@ def main() -> None:
 
     try:
         config = get_config()
+        # Always record the stop in the audit log, even when TDD is off.
+        audit_event("Stop", input_data,
+                    extra={"stop_hook_active": bool(input_data.get("stop_hook_active"))},
+                    config=config)
         if not config.enable_tdd or not config.llm_available:
             sys.exit(0)
         # Don't re-block once we've already asked Claude to continue.
