@@ -1,0 +1,31 @@
+# Configuration for the v2 hook system.
+# Every value can be overridden by an environment variable (see shared/config.py).
+
+anthropic:
+  # api_key: read from ANTHROPIC_API_KEY env var (preferred). Leave unset here.
+  timeout_seconds: 30
+
+gates:
+  # Tier A prompt rewrite. The priority feature: ON by default, applied to every
+  # Skill/Agent invocation that carries a prompt.
+  always_rewrite: true
+  # Apply the refined prompt when the model's intent-preservation confidence is at
+  # least this value. Low so the rewrite is kept in almost all cases.
+  refine_confidence_threshold: 0.30
+  # Tier B TDD generation + test execution + validation. OFF by default; flip to
+  # true (or set ENABLE_TDD=true) to turn on the validate/retry workflow.
+  enable_tdd: false
+
+tdd:
+  num_tests: 4
+  max_cycles: 3
+  pass_rate_threshold: 0.95
+
+models:
+  tier_a: "claude-haiku-4-5"        # prompt refinement
+  tier_b_gen: "claude-sonnet-4-6"   # test-case generation
+  tier_b_validate: "claude-sonnet-4-6"  # validation, cycles 1-2
+  tier_b_deep: "claude-opus-4-8"    # validation, final cycle
+
+logging:
+  dir: "logs"   # relative to the hooks_v2 root

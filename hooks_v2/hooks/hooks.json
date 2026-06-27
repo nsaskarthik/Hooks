@@ -1,0 +1,51 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/user_prompt_submit.py\"",
+            "timeout": 30,
+            "statusMessage": "Refining prompt..."
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/user_prompt_expansion.py\"",
+            "timeout": 30,
+            "statusMessage": "Refining command..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/post_tool_use.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/stop.py\"",
+            "timeout": 120,
+            "statusMessage": "Validating against TDD criteria..."
+          }
+        ]
+      }
+    ]
+  }
+}
