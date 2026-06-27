@@ -5,6 +5,11 @@ A Category-2 (LLM-enhanced) hook system for Claude Code, built to the
 submitted, audits **MCP** tool calls, and optionally validates the final response
 against generated acceptance criteria.
 
+> **Official Claude Code hooks documentation:**
+> <https://docs.claude.com/en/docs/claude-code/hooks> (reference:
+> <https://code.claude.com/docs/en/hooks>). Every event name, input field, and
+> output/control field used here is validated against that documentation.
+
 ## What it does
 
 | Event | Trigger | Action |
