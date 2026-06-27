@@ -77,6 +77,16 @@ def test_complete_api_requires_key():
         llm_client.complete("m", "s", "u", backend="api", api_key=None)
 
 
+def test_complete_rejects_unknown_backend():
+    with pytest.raises(LLMError):
+        llm_client.complete("m", "s", "u", backend="bogus")
+
+
+def test_parse_json_object_rejects_non_dict():
+    with pytest.raises(LLMError):
+        llm_client.parse_json_object("[1, 2, 3]")
+
+
 def test_complete_agent_sdk_missing_pkg_raises(monkeypatch):
     """When claude_agent_sdk isn't importable, complete() raises LLMError (callers fail open)."""
     real_import = builtins.__import__

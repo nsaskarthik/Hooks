@@ -30,7 +30,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/pre_tool_use.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/pre_tool_use.py\"",
+            "timeout": 15
           }
         ]
       }
@@ -41,7 +42,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/post_tool_use.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/post_tool_use.py\"",
+            "timeout": 15
           }
         ]
       }
@@ -51,7 +53,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/post_tool_use_failure.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/post_tool_use_failure.py\"",
+            "timeout": 15
           }
         ]
       }
@@ -61,7 +64,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/permission_request.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/permission_request.py\"",
+            "timeout": 15
           }
         ]
       }
@@ -71,7 +75,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/notification.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/notification.py\"",
+            "timeout": 15
           }
         ]
       }
@@ -81,7 +86,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/session_start.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/session_start.py\"",
+            "timeout": 20
           }
         ]
       }
@@ -91,7 +97,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/session_end.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/session_end.py\"",
+            "timeout": 15
           }
         ]
       }
@@ -101,7 +108,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/setup.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/setup.py\"",
+            "timeout": 30
           }
         ]
       }
@@ -111,7 +119,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/subagent_start.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/subagent_start.py\"",
+            "timeout": 15
           }
         ]
       }
@@ -121,7 +130,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/subagent_stop.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/subagent_stop.py\"",
+            "timeout": 120
           }
         ]
       }
@@ -131,7 +141,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/pre_compact.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/pre_compact.py\"",
+            "timeout": 20
           }
         ]
       }
@@ -141,7 +152,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/post_compact.py\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/lifecycle_events/post_compact.py\"",
+            "timeout": 15
           }
         ]
       }

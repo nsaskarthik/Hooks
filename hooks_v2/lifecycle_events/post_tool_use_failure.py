@@ -37,7 +37,9 @@ def main() -> None:
                    "input_keys": sorted(tool_input.keys()) if isinstance(tool_input, dict) else []},
             config=config,
         )
-        notify(f"{tool_name or 'tool'} failed: {str(error)[:200]}",
+        # Keep the full error in the local audit log only; the notification (which
+        # may go to webhook/desktop) stays generic so it can't leak secrets/paths.
+        notify(f"{tool_name or 'tool'} failed",
                level="error", event="PostToolUseFailure",
                meta={"tool_name": tool_name, "session_id": input_data.get("session_id", "")},
                config=config)

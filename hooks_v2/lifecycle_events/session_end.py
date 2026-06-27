@@ -15,6 +15,7 @@ sys.path.insert(0, str(_ROOT.parent))
 
 from hooks_v2.shared.config import get_config   # noqa: E402
 from hooks_v2.shared.events import audit_event   # noqa: E402
+from hooks_v2.context_manager.context import session_key  # noqa: E402
 
 
 def main() -> None:
@@ -27,12 +28,14 @@ def main() -> None:
     try:
         config = get_config()
         removed = 0
-        state_dir = config.state_dir
-        if state_dir.exists():
-            for f in state_dir.glob("tdd_*.json"):
+        session_id = input_data.get("session_id", "")
+        # Only clear THIS session's TDD state, not other concurrent sessions'.
+        if session_id and config.state_dir.exists():
+            target = config.state_dir / f"{session_key(session_id)}.json"
+            if target.is_file():
                 try:
-                    f.unlink()
-                    removed += 1
+                    target.unlink()
+                    removed = 1
                 except OSError:
                     pass
         audit_event("SessionEnd", input_data,

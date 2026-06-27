@@ -63,6 +63,19 @@ def _env_access(tool_name: str, tool_input: dict) -> bool:
     return False
 
 
+_SECRET_RE = re.compile(
+    r"(?i)(authorization:\s*bearer\s+|bearer\s+|--password[=\s]+|--token[=\s]+|"
+    r"password[=\s]+|token[=\s]+|secret[=\s]+|api[_-]?key[=\s]+)(\S+)"
+)
+_AWS_RE = re.compile(r"AKIA[0-9A-Z]{16}")
+
+
+def _redact(command: str) -> str:
+    """Mask common inline secrets so the audit log never becomes a secret sink."""
+    out = _SECRET_RE.sub(lambda m: m.group(1) + "***", command or "")
+    return _AWS_RE.sub("AKIA" + "*" * 16, out)
+
+
 def _deny(reason: str) -> None:
     """Emit a PreToolUse deny decision with the given reason."""
     print(json.dumps({
@@ -98,13 +111,13 @@ def main() -> None:
             reason = _danger(command)
             if reason:
                 audit_event("PreToolUse", input_data, status="denied",
-                            extra={"tool_name": "Bash", "command": command, "reason": reason},
+                            extra={"tool_name": "Bash", "command": _redact(command), "reason": reason},
                             config=config)
                 _deny(reason)
                 sys.exit(0)
-            # Audit (allow) every Bash command for the run log.
+            # Audit (allow) every Bash command for the run log, secrets redacted.
             audit_event("PreToolUse", input_data,
-                        extra={"tool_name": "Bash", "command": command}, config=config)
+                        extra={"tool_name": "Bash", "command": _redact(command)}, config=config)
 
         sys.exit(0)
     except Exception:  # noqa: BLE001 - fail open

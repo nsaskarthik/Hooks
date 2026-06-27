@@ -16,7 +16,8 @@ LE = Path(__file__).resolve().parents[1] / "lifecycle_events"
 def _run(script: str, payload: dict, tmp_path: Path, env_extra: dict | None = None):
     env = dict(os.environ)
     for key in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "ENABLE_TDD",
-                "AUTO_ALLOW_READONLY", "NOTIFY_DESKTOP", "SUBAGENT_SUMMARY", "BACKUP_TRANSCRIPT"):
+                "AUTO_ALLOW_READONLY", "NOTIFY_DESKTOP", "NOTIFY_CHANNELS",
+                "NOTIFY_WEBHOOK_URL", "SUBAGENT_SUMMARY", "BACKUP_TRANSCRIPT"):
         env.pop(key, None)
     env["LLM_BACKEND"] = "api"
     env["HOOKS_LOG_DIR"] = str(tmp_path / "logs")
@@ -45,13 +46,17 @@ def test_session_start_emits_context_and_audits(tmp_path):
     assert any(r["event"] == "SessionStart" for r in _audit(tmp_path))
 
 
-def test_session_end_clears_stale_tdd_state(tmp_path):
+def test_session_end_clears_only_current_session_state(tmp_path):
+    from hooks_v2.context_manager.context import session_key
     state = tmp_path / "logs" / "state"
     state.mkdir(parents=True)
-    (state / "tdd_abc.json").write_text("{}")
+    mine = state / f"{session_key('s1')}.json"
+    other = state / f"{session_key('other')}.json"
+    mine.write_text("{}")
+    other.write_text("{}")
     proc = _run("session_end.py", {"session_id": "s1", "reason": "clear"}, tmp_path)
     assert proc.returncode == 0
-    assert not (state / "tdd_abc.json").exists()
+    assert not mine.exists() and other.exists()   # only this session's state cleared
     rec = [r for r in _audit(tmp_path) if r["event"] == "SessionEnd"][0]
     assert rec["stale_state_cleared"] == 1
 
@@ -110,6 +115,20 @@ def test_permission_request_auto_allows_readonly_when_enabled(tmp_path):
     proc = _run("permission_request.py", {"tool_name": "Read", "tool_input": {"file_path": "x"}},
                 tmp_path, env_extra={"AUTO_ALLOW_READONLY": "true"})
     assert json.loads(proc.stdout)["hookSpecificOutput"]["decision"]["behavior"] == "allow"
+
+
+def test_permission_request_auto_allows_safe_git(tmp_path):
+    proc = _run("permission_request.py", {"tool_name": "Bash", "tool_input": {"command": "git status"}},
+                tmp_path, env_extra={"AUTO_ALLOW_READONLY": "true"})
+    assert json.loads(proc.stdout)["hookSpecificOutput"]["decision"]["behavior"] == "allow"
+
+
+def test_permission_request_rejects_chained_bash(tmp_path):
+    # A safe-looking prefix followed by a destructive command must NOT auto-allow.
+    proc = _run("permission_request.py",
+                {"tool_name": "Bash", "tool_input": {"command": "echo ok && rm -rf /"}},
+                tmp_path, env_extra={"AUTO_ALLOW_READONLY": "true"})
+    assert proc.stdout.strip() == ""
 
 
 def test_notification_audits(tmp_path):

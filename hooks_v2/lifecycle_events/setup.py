@@ -7,6 +7,7 @@ context, and persists PROJECT_ROOT via CLAUDE_ENV_FILE when available. Fails ope
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -43,7 +44,9 @@ def _persist_env(name: str, value: str) -> None:
     if env_file:
         try:
             with open(env_file, "a") as f:
-                f.write(f'export {name}="{value}"\n')
+                # shlex.quote so a path with quotes/$()/backticks can't execute
+                # when the env file is sourced.
+                f.write(f"export {name}={shlex.quote(value)}\n")
         except OSError:
             pass
 

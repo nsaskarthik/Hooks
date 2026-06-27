@@ -7,6 +7,7 @@ given), and an env-gated transcript backup (``BACKUP_TRANSCRIPT=true``). Fails o
 
 import json
 import os
+import re
 import shutil
 import sys
 from datetime import datetime, timezone
@@ -27,7 +28,9 @@ def _backup(transcript_path: str, log_dir: Path, trigger: str) -> str | None:
         backups = log_dir / "transcript_backups"
         backups.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        dest = backups / f"{Path(transcript_path).stem}_{trigger}_{stamp}.jsonl"
+        # Clamp trigger to a safe filename fragment so it can't escape the dir.
+        safe_trigger = re.sub(r"[^A-Za-z0-9_.-]+", "_", trigger).strip("._") or "unknown"
+        dest = backups / f"{Path(transcript_path).stem}_{safe_trigger}_{stamp}.jsonl"
         shutil.copy2(transcript_path, dest)
         return str(dest)
     except Exception:  # noqa: BLE001

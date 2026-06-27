@@ -21,6 +21,13 @@ from hooks_v2.shared.events import audit_event   # noqa: E402
 def _git_summary(cwd: str) -> list[str]:
     """Return short git branch / uncommitted-count / recent-commit lines for cwd."""
     out = []
+    # cwd comes from the hook payload; only run git in an existing real directory.
+    if not cwd:
+        return out
+    resolved = Path(cwd).resolve()
+    if not resolved.is_dir():
+        return out
+    cwd = str(resolved)
     try:
         branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
                                 capture_output=True, text=True, timeout=5, cwd=cwd or None)

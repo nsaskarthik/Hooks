@@ -69,10 +69,17 @@ def _ch_log(message: str, level: str, event: str, meta: dict, config) -> None:
 def _ch_desktop(message: str, level: str, event: str, meta: dict, config) -> None:
     """Best-effort desktop pop-up via notify-send or osascript."""
     if shutil.which("notify-send"):
+        # message is a positional arg, not interpolated into a shell string.
         subprocess.run(["notify-send", "Claude Code", message], capture_output=True, timeout=5)
     elif shutil.which("osascript"):
+        # Pass the message as an argv item the AppleScript reads as DATA, never as
+        # interpolated source — otherwise crafted text could execute as AppleScript.
         subprocess.run(
-            ["osascript", "-e", f'display notification "{message}" with title "Claude Code"'],
+            ["osascript", "-e",
+             'on run argv\n'
+             'display notification (item 1 of argv) with title "Claude Code"\n'
+             'end run',
+             message],
             capture_output=True, timeout=5)
 
 

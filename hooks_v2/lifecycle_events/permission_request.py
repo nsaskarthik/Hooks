@@ -11,6 +11,7 @@ Note: PermissionRequest does not fire in non-interactive (-p) mode.
 import json
 import os
 import re
+import shlex
 import sys
 from pathlib import Path
 
@@ -20,21 +21,31 @@ sys.path.insert(0, str(_ROOT.parent))
 from hooks_v2.shared.config import get_config   # noqa: E402
 from hooks_v2.shared.events import audit_event   # noqa: E402
 
-_SAFE_BASH = [
-    r"^ls\b", r"^pwd\b", r"^echo\b", r"^cat\b(?!.*>)", r"^head\b", r"^tail\b",
-    r"^wc\b", r"^which\b", r"^file\b", r"^stat\b",
-    r"^git\s+(status|log|diff|show|branch|remote)\b",
-]
+# Single read-only commands that are safe to auto-allow.
+_SAFE_SINGLE = {"ls", "pwd", "echo", "head", "tail", "wc", "which", "file", "stat", "cat"}
+_SAFE_GIT_SUB = {"status", "log", "diff", "show", "branch", "remote"}
+# Any shell metacharacter means chaining/piping/redirection/substitution -> not safe.
+_UNSAFE_META = re.compile(r"[;&|><`$()]")
 
 
 def _is_readonly(tool_name: str, tool_input: dict) -> bool:
-    """True if the tool call is clearly read-only (safe to auto-allow)."""
+    """True only if the call is genuinely read-only (no chaining/pipes/redirects)."""
     if tool_name in ("Read", "Glob", "Grep"):
         return True
-    if tool_name == "Bash":
-        cmd = (tool_input.get("command") or "").strip()
-        return any(re.search(p, cmd) for p in _SAFE_BASH)
-    return False
+    if tool_name != "Bash":
+        return False
+    cmd = (tool_input.get("command") or "").strip()
+    if not cmd or _UNSAFE_META.search(cmd):
+        return False  # reject `echo ok && rm -rf /`, pipes, redirects, $(...), etc.
+    try:
+        parts = shlex.split(cmd)
+    except ValueError:
+        return False
+    if not parts:
+        return False
+    if parts[0] in _SAFE_SINGLE:
+        return True
+    return len(parts) >= 2 and parts[0] == "git" and parts[1] in _SAFE_GIT_SUB
 
 
 def main() -> None:

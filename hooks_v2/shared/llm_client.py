@@ -35,7 +35,9 @@ def complete(
     if backend == "api":
         return _complete_api(model, system, user, max_tokens=max_tokens,
                              timeout=timeout, api_key=api_key)
-    return _complete_agent_sdk(model, system, user, timeout=timeout)
+    if backend == "agent_sdk":
+        return _complete_agent_sdk(model, system, user, timeout=timeout)
+    raise LLMError(f"Unsupported LLM backend: {backend!r}")
 
 
 def _complete_api(model, system, user, *, max_tokens, timeout, api_key):
@@ -125,7 +127,10 @@ def parse_json_object(text: str) -> dict[str, Any]:
     if fenced:
         text = fenced.group(1)
     try:
-        return json.loads(text)
+        parsed = json.loads(text)
+        if not isinstance(parsed, dict):
+            raise LLMError("Model output must be a JSON object")
+        return parsed
     except (json.JSONDecodeError, ValueError):
         pass
     # Fall back to the first fully balanced { ... } span (brace-depth scan that
@@ -152,7 +157,10 @@ def parse_json_object(text: str) -> dict[str, Any]:
                 depth -= 1
                 if depth == 0:
                     try:
-                        return json.loads(text[start : i + 1])
+                        parsed = json.loads(text[start : i + 1])
                     except (json.JSONDecodeError, ValueError) as e:
                         raise LLMError(f"Unparseable JSON from model: {e}") from e
+                    if not isinstance(parsed, dict):
+                        raise LLMError("Model output must be a JSON object")
+                    return parsed
     raise LLMError("No JSON object found in model output")
