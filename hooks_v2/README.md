@@ -37,6 +37,22 @@ in one place:
 All are **fail-open** — any error exits 0 and the action proceeds untouched. The
 optional behaviors are off by default and gated by the env vars shown above.
 
+### Notifications are pluggable (built to scale)
+
+`Notification` and tool/subagent **failures** both route through one notifier
+(`shared/notify.py`) that fans a message out to every **enabled channel**. Pick
+channels via `notify.channels` in `config.yaml` or `NOTIFY_CHANNELS=log,desktop,…`:
+
+| Channel | Does |
+|---------|------|
+| `log` (default) | structured record in the audit log |
+| `desktop` | `notify-send` / `osascript` pop-up |
+| `webhook` | HTTP POST JSON to `NOTIFY_WEBHOOK_URL` — the hook for **mobile push** (ntfy/Pushover/Slack/your backend) |
+| `sms` | reserved placeholder for a future SMS/push provider (e.g. Twilio) |
+
+Adding a mobile-push channel later is one function + a config entry — the hooks
+that call `notify(...)` don't change.
+
 ### Why these events (not PreToolUse on Skill/Agent)
 
 Prompt typos originate in **the user's input**, so refinement happens where that

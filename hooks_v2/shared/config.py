@@ -49,6 +49,7 @@ class HookConfig:
         logging_cfg = data.get("logging", {}) or {}
         models_cfg = data.get("models", {}) or {}
         anthropic_cfg = data.get("anthropic", {}) or {}
+        notify_cfg = data.get("notify", {}) or {}
 
         # --- API ---
         self.anthropic_api_key = os.getenv(
@@ -106,6 +107,11 @@ class HookConfig:
             "tier_b_validate", models.TIER_B_VALIDATE_MODEL
         )
         self.tier_b_deep_model = models_cfg.get("tier_b_deep", models.TIER_B_DEEP_MODEL)
+
+        # --- Notifications ---
+        # Channels the notifier fans out to. Override with NOTIFY_CHANNELS (comma
+        # list). Default ["log"]; add "desktop"/"webhook"/"sms" as you enable them.
+        self.notify_channels = notify_cfg.get("channels", ["log"]) or ["log"]
 
         # --- Paths ---
         root = Path(__file__).resolve().parent.parent

@@ -43,5 +43,13 @@ models:
   tier_b_validate: "claude-sonnet-4-6"  # validation, cycles 1-2
   tier_b_deep: "claude-opus-4-8"    # validation, final cycle
 
+notify:
+  # Channels the notifier fans out to (override with NOTIFY_CHANNELS).
+  #   log     - structured record in the audit log (always cheap)
+  #   desktop - notify-send / osascript pop-up
+  #   webhook - HTTP POST JSON to NOTIFY_WEBHOOK_URL (mobile push: ntfy/Pushover/Slack/custom)
+  #   sms     - reserved placeholder for a future SMS/push provider (e.g. Twilio)
+  channels: ["log"]
+
 logging:
   dir: "logs"   # relative to the hooks_v2 root
