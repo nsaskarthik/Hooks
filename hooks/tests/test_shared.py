@@ -87,6 +87,16 @@ def test_parse_json_object_rejects_non_dict():
         llm_client.parse_json_object("[1, 2, 3]")
 
 
+def test_redact_masks_secrets():
+    from hooks.shared.redact import redact
+    assert "***" in redact("--password=hunter2")
+    assert "hunter2" not in redact("--password=hunter2")
+    assert redact("export TOKEN=abc123").endswith("***")
+    assert "AKIA" + "*" * 16 == redact("AKIAIOSFODNN7EXAMPLE")[:20]
+    assert redact("") == ""           # falsy input is safe
+    assert redact("plain text") == "plain text"   # nothing to mask
+
+
 def test_usage_int_handles_dict_object_and_none():
     # Token usage may arrive as a dict, an SDK object, or be missing entirely;
     # extraction must never raise (it must stay inside the LLMError contract).

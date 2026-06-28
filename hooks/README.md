@@ -192,6 +192,26 @@ Prefer the pay-as-you-go API instead? Set `LLM_BACKEND=api` and `ANTHROPIC_API_K
 
 Models: Tier A `claude-haiku-4-5`; Tier B gen/validate `claude-sonnet-4-6`; final cycle `claude-opus-4-8`.
 
+## Human-readable artifacts (for a UI)
+
+When a rewrite or TDD run happens, the hooks also write Markdown artifacts to **two**
+locations so a future UI (or you) can browse them:
+
+```text
+<project>/.claude/hook_artifacts/                       # project-local
+~/.claude/projects/<project-name>/hook_artifacts/       # global, per project
+```
+
+| File | Written when | Shape |
+|------|--------------|-------|
+| `llm_rewrites.md` | every applied prompt rewrite | **single file, appended** (original → rewritten + corrections) |
+| `Tdd_V<n>.md` | each TDD criteria generation | **new versioned file** (`Tdd_V1.md`, `Tdd_V2.md`, …) |
+| `TestResults_V<n>.md` | each Stop-hook validation | **new versioned file** (pass rate + per-criterion table) |
+
+The applied rewrite is also surfaced **in the CLI** via the hook's `systemMessage`.
+All artifact writing is best-effort (never breaks a hook) and adds **< 1 ms** per
+hook. Disable with `HOOK_ARTIFACTS=false`.
+
 ## Run the automated tests
 
 The suite is pure-Python and needs **no API key/subscription** (the LLM call is

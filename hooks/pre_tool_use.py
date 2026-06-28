@@ -20,6 +20,7 @@ sys.path.insert(0, str(_ROOT.parent))
 
 from hooks.shared.config import get_config   # noqa: E402
 from hooks.shared.events import audit_event   # noqa: E402
+from hooks.shared.redact import redact as _redact   # noqa: E402
 
 _RM_PATTERNS = [
     r"\brm\s+.*-[a-z]*r[a-z]*f",      # rm -rf / -fr / -Rf ...
@@ -63,17 +64,6 @@ def _env_access(tool_name: str, tool_input: dict) -> bool:
     return False
 
 
-_SECRET_RE = re.compile(
-    r"(?i)(authorization:\s*bearer\s+|bearer\s+|--password[=\s]+|--token[=\s]+|"
-    r"password[=\s]+|token[=\s]+|secret[=\s]+|api[_-]?key[=\s]+)(\S+)"
-)
-_AWS_RE = re.compile(r"AKIA[0-9A-Z]{16}")
-
-
-def _redact(command: str) -> str:
-    """Mask common inline secrets so the audit log never becomes a secret sink."""
-    out = _SECRET_RE.sub(lambda m: m.group(1) + "***", command or "")
-    return _AWS_RE.sub("AKIA" + "*" * 16, out)
 
 
 def _deny(reason: str) -> None:

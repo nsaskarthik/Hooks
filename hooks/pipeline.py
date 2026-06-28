@@ -10,9 +10,11 @@ from typing import Any
 
 from . import tier_a_refine, tier_b_tdd
 from .context import ContextStore, session_key
+from .shared import artifacts
 
 
-def refine_and_prepare(prompt: str, session_id: str, config, logger, event_name: str) -> dict[str, Any]:
+def refine_and_prepare(prompt: str, session_id: str, config, logger, event_name: str,
+                       cwd: str = "") -> dict[str, Any]:
     """Refine ``prompt`` and, when enabled, generate/store TDD criteria.
 
     Returns ``{applied, refined, refinement}`` where ``applied`` says whether the
@@ -27,14 +29,21 @@ def refine_and_prepare(prompt: str, session_id: str, config, logger, event_name:
         if tier_a_refine.should_apply(refinement, config):
             result["applied"] = True
             result["refined"] = refinement["refined_prompt"]
+            # Append the applied rewrite to the human-readable artifact log.
+            try:
+                artifacts.record_rewrite(
+                    prompt, result["refined"], refinement.get("corrections"),
+                    cwd=cwd, session_id=session_id, event=event_name)
+            except Exception:  # noqa: BLE001 - artifacts must never break a prompt
+                pass
 
     if config.enable_tdd and config.llm_available:
-        _generate_and_store_tdd(result["refined"], session_id, config, logger)
+        _generate_and_store_tdd(result["refined"], session_id, config, logger, cwd)
 
     return result
 
 
-def _generate_and_store_tdd(prompt: str, session_id: str, config, logger) -> None:
+def _generate_and_store_tdd(prompt: str, session_id: str, config, logger, cwd: str = "") -> None:
     """Generate TDD criteria for ``prompt`` and persist them under the session key."""
     store = ContextStore(config.state_dir)
     key = session_key(session_id)
@@ -42,6 +51,14 @@ def _generate_and_store_tdd(prompt: str, session_id: str, config, logger) -> Non
         gen = tier_b_tdd.generate_tests(prompt, config)
         logger.log("tier_b_generate", gen)
         store.save(key, {"prompt": prompt, "tests": gen["tests"], "cycle": 0})
+        # Write a versioned Tdd_V<n>.md alongside the persisted state.
+        try:
+            version = artifacts.write_tdd(gen["tests"], prompt, cwd=cwd, session_id=session_id)
+            if version is not None:
+                store.save(key, {"prompt": prompt, "tests": gen["tests"], "cycle": 0,
+                                 "tdd_version": version})
+        except Exception:  # noqa: BLE001 - artifacts must never break a prompt
+            pass
     except Exception as e:  # noqa: BLE001 - TDD must never break the prompt
         # Clear any older criteria for this session so the Stop hook can't later
         # validate against stale tests after a failed regeneration.
