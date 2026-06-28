@@ -212,6 +212,34 @@ The applied rewrite is also surfaced **in the CLI** via the hook's `systemMessag
 All artifact writing is best-effort (never breaks a hook) and adds **< 1 ms** per
 hook. Disable with `HOOK_ARTIFACTS=false`.
 
+## Project memory (tiered, git-backed)
+
+The hooks build a durable, cross-device **memory** under a store dir (default the in-repo
+`claude-memory/` folder; override with `MEMORY_DIR`). It's **deterministic, fail-open**, and
+gated by `HOOK_MEMORY` (default on). Tiers keep injection constant-size while history grows:
+
+| File | Tier | Role |
+|------|------|------|
+| `HOT.md` | HOT | bounded, newest-first digest **injected at SessionStart** |
+| `log/entries.jsonl` | WARM | append-only history (searched, not injected) |
+| `archive/entries.jsonl` | COLD | compacted rollups once WARM passes its cap |
+| `user_memory.md` | GLOBAL | cross-project preferences / lessons |
+
+- **Capture** runs on `Stop`, **change-gated** (an entry only when the turn changed files or
+  ran TDD, never twice for the same state) and **secret-redacted** (shared `redact.py`).
+- **Inject** happens on `SessionStart` — only the bounded `HOT.md` (+ `user_memory.md`), so
+  context stays small no matter how large the store grows. Search the WARM log with
+  `git grep`/`rg`.
+- **Auto-commit** is **off by default** (`MEMORY_AUTOCOMMIT=true` to enable) and commits *only*
+  the memory dir — turn it on once the store is its **own** git repo so it doesn't pollute the
+  code repo's history.
+
+| Setting | Env | Default |
+|---------|-----|---------|
+| Enable memory | `HOOK_MEMORY` | `true` |
+| Store location | `MEMORY_DIR` | in-repo `claude-memory/` |
+| Auto-commit on write | `MEMORY_AUTOCOMMIT` | `false` |
+
 ## Run the automated tests
 
 The suite is pure-Python and needs **no API key/subscription** (the LLM call is

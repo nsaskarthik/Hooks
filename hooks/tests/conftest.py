@@ -17,11 +17,13 @@ _HOOK_ENV = ("ENABLE_TDD", "ENABLE_PROMPT_REWRITE", "REFINE_CONFIDENCE_THRESHOLD
 
 
 @pytest.fixture(autouse=True)
-def _no_artifacts(monkeypatch):
-    """Disable on-disk artifact writing for every test (set in os.environ so the
-    subprocess hook tests inherit it too). test_artifacts.py re-enables it after
-    pointing CLAUDE_PROJECT_DIR / HOME at temp dirs."""
+def _no_side_writes(monkeypatch):
+    """Disable on-disk artifact + memory writing for every test (set in os.environ so
+    the subprocess hook tests inherit it too). test_artifacts.py / test_memory.py
+    re-enable what they need after pointing dirs at temp paths."""
     monkeypatch.setenv("HOOK_ARTIFACTS", "false")
+    monkeypatch.setenv("HOOK_MEMORY", "false")
+    monkeypatch.setenv("MEMORY_AUTOCOMMIT", "false")
 
 
 @pytest.fixture

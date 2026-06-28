@@ -39,6 +39,15 @@ def main() -> None:
         audit_event("Stop", input_data,
                     extra={"stop_hook_active": bool(input_data.get("stop_hook_active"))},
                     config=config)
+        # Capture a memory entry every turn-end (deterministic, change-gated, fail-open),
+        # independent of TDD. Commit only if MEMORY_AUTOCOMMIT is on.
+        try:
+            from hooks.shared import memory
+            if memory.capture_entry(input_data):
+                memory.commit_memory(input_data)
+            memory.compact_if_needed()
+        except Exception:  # noqa: BLE001 - memory must never break the hook
+            pass
         if not config.enable_tdd or not config.llm_available:
             sys.exit(0)
         # Don't re-block once we've already asked Claude to continue.

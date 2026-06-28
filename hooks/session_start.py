@@ -70,6 +70,14 @@ def main() -> None:
             f"tdd_validation={'on' if config.enable_tdd else 'off'}; "
             f"llm_backend={config.llm_backend}."
         )
+        # Inject the bounded memory digest so the session resumes with prior context.
+        try:
+            from hooks.shared import memory
+            hot = memory.read_hot()
+            if hot:
+                parts.append("Recent project memory:\n" + hot)
+        except Exception:  # noqa: BLE001 - memory must never break the hook
+            pass
         print(json.dumps({
             "hookSpecificOutput": {
                 "hookEventName": "SessionStart",
