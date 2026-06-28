@@ -40,7 +40,8 @@ def main() -> None:
             sys.exit(0)
 
         result = pipeline.refine_and_prepare(
-            text, session_id, config, get_logger(config.log_dir), "UserPromptSubmit"
+            text, session_id, config, get_logger(config.log_dir), "UserPromptSubmit",
+            cwd=input_data.get("cwd", ""),
         )
 
         if result["applied"]:
@@ -53,11 +54,13 @@ def main() -> None:
                 + "Act on this corrected version."
             )
             # UserPromptSubmit cannot replace the prompt; add context instead.
+            # systemMessage surfaces the rewrite to the user in the CLI.
             print(json.dumps({
                 "hookSpecificOutput": {
                     "hookEventName": "UserPromptSubmit",
                     "additionalContext": context,
-                }
+                },
+                "systemMessage": f"✏️  Prompt refined → {result['refined']}",
             }))
         sys.exit(0)
     except Exception:  # noqa: BLE001 - absolute fail-open guarantee

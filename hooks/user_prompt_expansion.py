@@ -36,17 +36,20 @@ def main() -> None:
             sys.exit(0)
 
         result = pipeline.refine_and_prepare(
-            expanded, session_id, config, get_logger(config.log_dir), "UserPromptExpansion"
+            expanded, session_id, config, get_logger(config.log_dir), "UserPromptExpansion",
+            cwd=input_data.get("cwd", ""),
         )
 
         if result["applied"]:
             # This event supports a true rewrite of the expanded prompt, returned
             # under hookSpecificOutput.expandedPrompt per the hooks docs.
+            # systemMessage surfaces the rewrite to the user in the CLI.
             print(json.dumps({
                 "hookSpecificOutput": {
                     "hookEventName": "UserPromptExpansion",
                     "expandedPrompt": result["refined"],
-                }
+                },
+                "systemMessage": f"✏️  Command prompt refined → {result['refined']}",
             }))
         sys.exit(0)
     except Exception:  # noqa: BLE001 - absolute fail-open guarantee

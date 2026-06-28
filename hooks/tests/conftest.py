@@ -16,6 +16,14 @@ _HOOK_ENV = ("ENABLE_TDD", "ENABLE_PROMPT_REWRITE", "REFINE_CONFIDENCE_THRESHOLD
              "LLM_BACKEND", "CLAUDE_CODE_OAUTH_TOKEN")
 
 
+@pytest.fixture(autouse=True)
+def _no_artifacts(monkeypatch):
+    """Disable on-disk artifact writing for every test (set in os.environ so the
+    subprocess hook tests inherit it too). test_artifacts.py re-enables it after
+    pointing CLAUDE_PROJECT_DIR / HOME at temp dirs."""
+    monkeypatch.setenv("HOOK_ARTIFACTS", "false")
+
+
 @pytest.fixture
 def config(tmp_path, monkeypatch):
     """A fresh HookConfig on the API backend with a fake key and temp dirs.

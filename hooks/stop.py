@@ -72,6 +72,13 @@ def main() -> None:
             sys.exit(0)
 
         logger.log("tier_b_validate", {**validation, "event": "Stop"})
+        # Write a human-readable test-results summary (best-effort, never fatal).
+        try:
+            from hooks.shared import artifacts
+            artifacts.write_test_results(
+                validation, cwd=input_data.get("cwd", ""), session_id=session_id)
+        except Exception:  # noqa: BLE001
+            pass
 
         if validation["pass_rate"] >= config.tdd_pass_threshold or cycle >= config.tdd_max_cycles:
             store.clear(key)
